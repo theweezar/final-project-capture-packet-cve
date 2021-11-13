@@ -1,6 +1,8 @@
 import time
-import os
 import psutil
+from Crypto.Util import number
+import codecs
+import re
 
 def calculate_time_execute(callback):
     start_time = time.time()
@@ -19,3 +21,14 @@ def get_interfaces():
 
 if __name__ == '__main__':
     get_interfaces()
+
+def convert_hex_string_to_paragraph(hex_str: str):
+    data_long = int(hex_str.replace(':', ''), 16)
+    data_bytes = number.long_to_bytes(data_long)
+    data_decode = None
+    try:    
+        data_decode = codecs.decode(data_bytes, encoding='unicode_escape', errors='replace')
+        data_decode = re.sub('\\s+', '', data_decode)
+    except:
+        data_decode = 'Unable to decode hex data'
+    return data_decode

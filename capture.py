@@ -1,9 +1,12 @@
+from logging import debug
 import SystemHelpers
 import pyshark
 import msvcrt
-from PacketUtil import *
+import PacketUtil
+import csv
 
 def main():
+    output_file_name = "output"
     interfaces = SystemHelpers.get_interfaces()
     for i in range(len(interfaces)):
         print(str(i + 1) + '.', interfaces[i])
@@ -18,14 +21,24 @@ def main():
         interface=interfaces[int(selected_int) - 1]
     )
 
+    # csv_file = open(f'{output_file_name}.csv', 'w+', encoding='utf-8')
+    # csv_writter = csv.writer(csv_file)
+
     for packet in capture.sniff_continuously():
-        packet_analysis(packet)
+        packet_summary = PacketUtil.summary_data_in_packet(packet)
+        # PacketUtil.print_all_field_in_layers(packet)
+        # PacketUtil.print_all_field_in_frame_info(packet)
+        if packet_summary is not None:
+            # csv_writter.writerow([packet_summary[key] for key in packet_summary])
+            print(packet_summary)
+
         if msvcrt.kbhit():
             char = msvcrt.getch().decode('utf-8')
             if char == 'q' or char == 'c':
                 print('Exit...')
                 break
-
+    
+    # csv_file.close()
     pyshark.capture.capture.StopCapture()
     
 

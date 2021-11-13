@@ -1,4 +1,9 @@
 from pyshark.packet.packet import Packet
+from typing import Union
+from Crypto.Util import number
+import codecs
+import re
+import SystemHelpers
 
 def discover_all_fields_that_match_value(packet: Packet, value):
     '''
@@ -109,23 +114,58 @@ def get_all_field_names(packet: Packet, layer=None):
         if not layer or layer == current_layer.__dict__['_layer_name']:
             for field in current_layer.__dict__['_all_fields']:
                 field_names.add(field)
+    # print(*sorted(field_names), sep='\n')
     return field_names
 
-def parse_packet(packet: Packet):
+def print_all_field_in_layers(packet: Packet):
+    for layers in packet.layers:
+        for field in layers.__dict__['_all_fields']:
+            print('Layer:', layers.__dict__['_layer_name'], ', Field:', field, ':', layers.__dict__['_all_fields'][field])
+
+def print_all_field_in_frame_info(packet: Packet):
+    frame_info = packet.__dict__['frame_info']
+    for frame in frame_info.__dict__:
+        print(frame, ':', frame_info.__dict__[frame])
+
+def get_tls_app_data(packet: Packet, decode = False):
+    tls_app_data = None
+    for current_layer in packet.layers:
+        if current_layer.__dict__['_layer_name'] == 'tls':
+            if 'tls.app_data' in current_layer.__dict__['_all_fields']:
+                tls_app_data = str(current_layer.__dict__['_all_fields']['tls.app_data'])
+                if tls_app_data is not None and decode is True:
+                    tls_app_data = SystemHelpers.convert_hex_string_to_paragraph(tls_app_data)
+    return tls_app_data
+
+def get_udp_tcp_payload(packet: Packet, decode = False) -> Union[str, None]:
+    payload = None
+    
+    for layers in packet.layers:
+        if layers.__dict__['_layer_name'] == 'udp' and 'udp.payload' in layers.__dict__['_all_fields']:
+            # payload = str(get_value_from_packet_for_layer_field(packet, 'udp', 'udp.payload'))
+            payload = str(layers.__dict__['_all_fields']['udp.payload'])
+        elif layers.__dict__['_layer_name'] == 'tcp' and 'tcp.payload' in layers.__dict__['_all_fields']:
+            # payload = str(get_value_from_packet_for_layer_field(packet, 'tcp', 'tcp.payload'))
+            payload = str(layers.__dict__['_all_fields']['tcp.payload'])
+
+    if payload is not None and decode is True:
+        payload_decode = SystemHelpers.convert_hex_string_to_paragraph(payload)
+        return payload_decode.strip()
+    
+    return payload
+
+def summary_data_in_packet(packet: Packet):
+    summary_dict = {}
     try:
-        protocol = packet.transport_layer
-        source_address = packet.ip.src
-        source_port = packet[packet.transport_layer].srcport
-        destination_address = packet.ip.dst
-        destination_port = packet[packet.transport_layer].dstport
-        packet_time = '{:%Y-%b-%d %H:%M:%S}'.format(packet.sniff_time)
-        return f"{protocol},{source_address},{source_port},{destination_address},{destination_port},{packet_time}"
+        summary_dict['protocol'] = packet.transport_layer
+        summary_dict['source_address'] = packet.ip.src
+        summary_dict['source_port'] = packet[packet.transport_layer].srcport
+        summary_dict['destination_address'] = packet.ip.dst
+        summary_dict['destination_port'] = packet[packet.transport_layer].dstport
+        summary_dict['packet_time'] = '{:%Y-%b-%d %H:%M:%S}'.format(packet.sniff_time)
+        summary_dict['layer_payload'] = get_udp_tcp_payload(packet, decode=True)
+        # summary_dict['tls_payload'] = get_tls_app_data(packet, decode=True)
+        # print(get_udp_tcp_payload(packet, decode=True))
+        return summary_dict
     except:
         return None
-
-def packet_analysis(packet: Packet):
-    packet_summary = parse_packet(packet)
-    if parse_packet is not None:
-        field_name = get_all_field_names(packet)
-        print(packet.layers)
-        print(packet_summary)
