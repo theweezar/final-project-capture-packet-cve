@@ -1,4 +1,3 @@
-from logging import debug
 import SystemHelpers
 import pyshark
 import msvcrt
@@ -25,12 +24,15 @@ def main():
     # csv_writter = csv.writer(csv_file)
 
     for packet in capture.sniff_continuously():
-        packet_summary = PacketUtil.summary_data_in_packet(packet)
+        packet_summary = PacketUtil.summary_data_in_packet(packet, is_decode_hex_payload=True)
         # PacketUtil.print_all_field_in_layers(packet)
-        # PacketUtil.print_all_field_in_frame_info(packet)
         if packet_summary is not None:
             # csv_writter.writerow([packet_summary[key] for key in packet_summary])
-            print(packet_summary)
+            # print(packet_summary)
+            if PacketUtil.is_packet_payload_suspicious(packet_summary) is True:
+                # print('Suspicious packet:', packet_summary)
+                PacketUtil.print_all_field_in_layers(packet)
+                break
 
         if msvcrt.kbhit():
             char = msvcrt.getch().decode('utf-8')

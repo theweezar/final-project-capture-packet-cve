@@ -3,7 +3,9 @@ import sys
 import binascii
 import os
 
-MAGIC_NUMBER = "03010002110311003f00"
+SOS_MARKER = "FFDA"
+# MAGIC_NUMBER = "03010002110311003f00"
+MAGIC_NUMBER = "00 0c 03 01 00 02 11 03 11 00 3F 00".replace(" ", "")
 BIN_MAGIC_NUMBER = binascii.unhexlify(MAGIC_NUMBER)
 
 def main():

@@ -1,9 +1,7 @@
 from pyshark.packet.packet import Packet
 from typing import Union
-from Crypto.Util import number
-import codecs
-import re
 import SystemHelpers
+import re
 
 def discover_all_fields_that_match_value(packet: Packet, value):
     '''
@@ -137,7 +135,7 @@ def get_tls_app_data(packet: Packet, decode = False):
                     tls_app_data = SystemHelpers.convert_hex_string_to_paragraph(tls_app_data)
     return tls_app_data
 
-def get_udp_tcp_payload(packet: Packet, decode = False) -> Union[str, None]:
+def get_udp_tcp_hex_payload(packet: Packet) -> Union[str, None]:
     payload = None
     
     for layers in packet.layers:
@@ -147,14 +145,11 @@ def get_udp_tcp_payload(packet: Packet, decode = False) -> Union[str, None]:
         elif layers.__dict__['_layer_name'] == 'tcp' and 'tcp.payload' in layers.__dict__['_all_fields']:
             # payload = str(get_value_from_packet_for_layer_field(packet, 'tcp', 'tcp.payload'))
             payload = str(layers.__dict__['_all_fields']['tcp.payload'])
-
-    if payload is not None and decode is True:
-        payload_decode = SystemHelpers.convert_hex_string_to_paragraph(payload)
-        return payload_decode.strip()
     
     return payload
 
-def summary_data_in_packet(packet: Packet):
+def summary_data_in_packet(packet: Packet, is_decode_hex_payload: False) -> Union[dict, None]:
+    """Summary necessary packet information into dict"""
     summary_dict = {}
     try:
         summary_dict['protocol'] = packet.transport_layer
@@ -163,9 +158,24 @@ def summary_data_in_packet(packet: Packet):
         summary_dict['destination_address'] = packet.ip.dst
         summary_dict['destination_port'] = packet[packet.transport_layer].dstport
         summary_dict['packet_time'] = '{:%Y-%b-%d %H:%M:%S}'.format(packet.sniff_time)
-        summary_dict['layer_payload'] = get_udp_tcp_payload(packet, decode=True)
-        # summary_dict['tls_payload'] = get_tls_app_data(packet, decode=True)
-        # print(get_udp_tcp_payload(packet, decode=True))
+        hex_payload = get_udp_tcp_hex_payload(packet)
+        summary_dict['layer_hex_payload'] = hex_payload
+        if hex_payload is not None and is_decode_hex_payload is True:
+            summary_dict['layer_string_payload'] = SystemHelpers.convert_hex_payload_to_string(hex_payload)
         return summary_dict
     except:
         return None
+
+def is_packet_payload_suspicious(packet_summary: dict):
+    """
+    Analyze payload with pattern /(<\?php)((\s+)?.*)/g. Return True if this packet is suspicious
+    """
+    if 'layer_string_payload' in packet_summary:
+        pattern = '(<\?php)((\s+)?.*)'
+        layer_string_payload = re.sub('\\s+', '', packet_summary['layer_string_payload'])
+        search_result = re.search(pattern, layer_string_payload)
+        if search_result is not None:
+            return True
+
+    return False
+
