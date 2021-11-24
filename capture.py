@@ -3,6 +3,7 @@ import pyshark
 import msvcrt
 import PacketUtil
 import csv
+import sys
 
 def main():
     output_file_name = "output"
@@ -20,27 +21,33 @@ def main():
         interface=interfaces[int(selected_int) - 1]
     )
 
-    # csv_file = open(f'{output_file_name}.csv', 'w+', encoding='utf-8')
-    # csv_writter = csv.writer(csv_file)
+    csv_file = open(f'{output_file_name}.csv', 'w+', encoding='utf-8')
+    csv_writter = csv.writer(csv_file)
+    header = ['Protocol', 'Source Address', 'Source Port', 'Destination Address', 'Destination Port', 'Packet Time', 'Payload Hex', 'Note']
+    csv_writter.writerow(header)
 
     for packet in capture.sniff_continuously():
-        packet_summary = PacketUtil.summary_data_in_packet(packet, is_decode_hex_payload=True)
-        # PacketUtil.print_all_field_in_layers(packet)
-        if packet_summary is not None:
-            # csv_writter.writerow([packet_summary[key] for key in packet_summary])
-            # print(packet_summary)
-            if PacketUtil.is_packet_payload_suspicious(packet_summary) is True:
-                # print('Suspicious packet:', packet_summary)
-                PacketUtil.print_all_field_in_layers(packet)
-                break
-
         if msvcrt.kbhit():
             char = msvcrt.getch().decode('utf-8')
             if char == 'q' or char == 'c':
                 print('Exit...')
                 break
+
+        packet_summary = PacketUtil.summary_data_in_packet(packet, is_decode_hex_payload=True)
+        
+        if packet_summary is not None:
+            print(packet_summary)
+            
+            if PacketUtil.is_packet_payload_suspicious(packet_summary) is True:
+                PacketUtil.print_all_field_in_layers(packet)
+                packet_summary['note'] = 'Suspicious'
+
+            if 'layer_string_payload' in packet_summary:
+                del packet_summary['layer_string_payload']
+
+            csv_writter.writerow([packet_summary[key] for key in packet_summary])
     
-    # csv_file.close()
+    csv_file.close()
     pyshark.capture.capture.StopCapture()
     
 

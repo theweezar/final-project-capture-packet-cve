@@ -2,6 +2,7 @@ import psutil
 import binascii
 import codecs
 import re
+import time
 
 def calculate_time_execute(callback):
     start_time = time.time()
@@ -18,14 +19,9 @@ def get_interfaces():
     return interfaces
 
 def convert_hex_payload_to_string(hex_str: str):
-    """
-    'backslashreplace'  - uses a backslash instead of the character that could not be encoded
-    'ignore'    - ignores the characters that cannot be encoded
-    'namereplace'   - replaces the character with a text explaining the character
-    'strict'    - Default, raises an error on failure
-    'replace'   - replaces the character with a questionmark
-    'xmlcharrefreplace' - replaces the character with an xml character
-    """
+    '''
+        Convert the hex payload to string with utf-8 encoding
+    '''
     data_bytes = binascii.unhexlify(hex_str.replace(':', ''))
     data_decode = None
     try:    
@@ -37,3 +33,13 @@ def convert_hex_payload_to_string(hex_str: str):
 
 if __name__ == '__main__':
     get_interfaces()
+
+
+"""
+'backslashreplace'  - uses a backslash instead of the character that could not be encoded
+'ignore'    - ignores the characters that cannot be encoded
+'namereplace'   - replaces the character with a text explaining the character
+'strict'    - Default, raises an error on failure
+'replace'   - replaces the character with a questionmark
+'xmlcharrefreplace' - replaces the character with an xml character
+"""

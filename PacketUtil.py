@@ -3,81 +3,9 @@ from typing import Union
 import SystemHelpers
 import re
 
-def discover_all_fields_that_match_value(packet: Packet, value):
-    '''
-        Builds a dictionary, with each layer name as a key, containing a list
-        of each field, in that layer, that matches the value exactly
-
-        Args:
-            packet: a single packet, that will be inspected
-            value: the value that all fields in the packet will be inspected for.
-
-        Returns:
-            a dictionary of lists
-            or None, if any of the arguments are None
-            example:
-                {'http': ['http.request.uri']}
-    '''
-    if not packet or not value:
-        return None
-
-    matches = {}
-    for current_layer in packet.layers:
-        fields = current_layer.__dict__['_all_fields']
-        layer_name = current_layer.__dict__['_layer_name']
-        for field in fields:
-            if value == fields[field]:
-                if layer_name not in matches:
-                    matches[layer_name] = []
-                matches[layer_name].append(field)
-    return matches
-
-
-def discover_all_fields_that_contain_value(packet: Packet, value):
-    '''
-        Builds a dictionary, with each layer name as a key, containing a list
-        of each field, in that layer, that contains the value
-
-        It doesn't have to be an exact match, it only has to contain the value.
-        i.e. '20' is contained in '13203'
-
-        Args:
-            packet: a single packet, that will be inspected
-            value: the value that all fields in the packet will be inspected for.
-
-        Returns:
-            a dictionary of lists
-            or None, if any of the arguments are None
-            example:
-                {'http': ['http.request.uri']}
-    '''
-    if not packet or not value:
-        return None
-
-    matches = {}
-    for current_layer in packet.layers:
-        fields = current_layer.__dict__['_all_fields']
-        layer_name = current_layer.__dict__['_layer_name']
-        for field in fields:
-            if value in fields[field]:
-                if layer_name not in matches:
-                    matches[layer_name] = []
-                matches[layer_name].append(field)
-    return matches
-
-
-def get_value_from_packet_for_layer_field(packet: Packet, layer, field):
+def get_value_from_packet_for_layer_field(packet: Packet, layer: str, field: str):
     '''
         Gets the value from the packet for the specified 'layer' and 'field'
-
-        Args:
-            packet: The packet where you'll be retrieving the value from
-            layer: The layer that contains the field
-            field: The field that contains the value
-
-        Returns:
-            the value at packet[layer][key] or None
-            or None, if any of the arguments are None
     '''
     if not packet or not layer or not field:
         return None
@@ -87,23 +15,20 @@ def get_value_from_packet_for_layer_field(packet: Packet, layer, field):
             return current_layer.__dict__['_all_fields'][field]
     return None
 
+def get_value_from_field(packet: Packet, field: str):
+    '''
+        Get value from field name
+    '''
+    for current_layer in packet.layers:
+        if field in current_layer.__dict__['_all_fields']:
+            return current_layer.__dict__['_all_fields'][field]
+    return None
 
 def get_all_field_names(packet: Packet, layer=None):
     '''
         Builds a unique list of field names, that exist in the packet,
         for the specified layer.
-
-        If no layer is provided, all layers are considered.
-
-        Args:
-            packet: the pyshark packet object the fields will be gathered from
-            layer: the string name of the layer that will be targeted
-
-        Returns:
-            a set containing all unique field names
-            or None, if packet is None
     '''
-
     if not packet:
         return None
 
@@ -112,20 +37,30 @@ def get_all_field_names(packet: Packet, layer=None):
         if not layer or layer == current_layer.__dict__['_layer_name']:
             for field in current_layer.__dict__['_all_fields']:
                 field_names.add(field)
-    # print(*sorted(field_names), sep='\n')
     return field_names
 
+    # print(*sorted(field_names), sep='\n')
+
 def print_all_field_in_layers(packet: Packet):
+    '''
+        Print all fields in every layers in the packet
+    '''
     for layers in packet.layers:
         for field in layers.__dict__['_all_fields']:
             print('Layer:', layers.__dict__['_layer_name'], ', Field:', field, ':', layers.__dict__['_all_fields'][field])
 
 def print_all_field_in_frame_info(packet: Packet):
+    '''
+        Print all fields in packet frame
+    '''
     frame_info = packet.__dict__['frame_info']
     for frame in frame_info.__dict__:
         print(frame, ':', frame_info.__dict__[frame])
 
 def get_tls_app_data(packet: Packet, decode = False):
+    '''
+        Get the TLS payload if it's in the packet
+    '''
     tls_app_data = None
     for current_layer in packet.layers:
         if current_layer.__dict__['_layer_name'] == 'tls':
@@ -136,6 +71,9 @@ def get_tls_app_data(packet: Packet, decode = False):
     return tls_app_data
 
 def get_udp_tcp_hex_payload(packet: Packet) -> Union[str, None]:
+    '''
+        Get UDP or TCP payload of the packet
+    '''
     payload = None
     
     for layers in packet.layers:
@@ -149,7 +87,9 @@ def get_udp_tcp_hex_payload(packet: Packet) -> Union[str, None]:
     return payload
 
 def summary_data_in_packet(packet: Packet, is_decode_hex_payload: False) -> Union[dict, None]:
-    """Summary necessary packet information into dict"""
+    '''
+        Summary necessary packet information into a dictionary
+    '''
     summary_dict = {}
     try:
         summary_dict['protocol'] = packet.transport_layer
@@ -167,9 +107,9 @@ def summary_data_in_packet(packet: Packet, is_decode_hex_payload: False) -> Unio
         return None
 
 def is_packet_payload_suspicious(packet_summary: dict):
-    """
-    Analyze payload with pattern /(<\?php)((\s+)?.*)/g. Return True if this packet is suspicious
-    """
+    '''
+        Analyze payload with pattern /(<\?php)((\s+)?.*)/g. Return True if this packet is suspicious
+    '''
     if 'layer_string_payload' in packet_summary:
         pattern = '(<\?php)((\s+)?.*)'
         layer_string_payload = re.sub('\\s+', '', packet_summary['layer_string_payload'])
