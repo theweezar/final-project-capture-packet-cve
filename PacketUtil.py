@@ -130,14 +130,17 @@ def is_packet_payload_suspicious(packet_summary: dict):
     '''
         Analyze payload with pattern /(<\?php)((\s+)?.*)/g. Return True if this packet is suspicious
     '''
-    if 'layer_string_payload' in packet_summary:
-        pattern = '(<\?php)((\s+)?.*)'
-        layer_string_payload = re.sub('\\s+', '', packet_summary['layer_string_payload'])
-        search_result = re.search(pattern, layer_string_payload)
-        if search_result is not None:
-            return True
+    if packet_summary is not None:
+        if 'layer_string_payload' in packet_summary:
+            pattern_php = '(<\?php)((\s+)?.*)'
+            pattern_content_type = 'Content-Type:image\/(jpeg|png)'
+            layer_string_payload = re.sub('\\s+', '', packet_summary['layer_string_payload'])
+            search_result_php = re.search(pattern_php, layer_string_payload)
+            search_result_content_type = re.search(pattern_content_type, layer_string_payload)
+            if search_result_php is not None and search_result_content_type is not None:
+                return search_result_php
 
-    return False
+    return None
 
 def print_suspicious_packet_info(packet_summary: dict):
     print('[ ', packet_summary['packet_time'], ' ]', '- Warning: Detect suspicious packet that has been injected')
