@@ -106,6 +106,26 @@ def summary_data_in_packet(packet: Packet, is_decode_hex_payload: False) -> Unio
     except:
         return None
 
+def parse_csv_data_to_dict(dataset: list) -> dict:
+    '''
+        Parse dataset from CSV into dictionary
+    '''
+    summary_dict = {}
+    try:
+        summary_dict['protocol'] = dataset[0]
+        summary_dict['source_address'] = dataset[1]
+        summary_dict['source_port'] = dataset[2]
+        summary_dict['destination_address'] = dataset[3]
+        summary_dict['destination_port'] = dataset[4]
+        summary_dict['packet_time'] = dataset[5]
+        hex_payload = dataset[6]
+        summary_dict['layer_hex_payload'] = hex_payload
+        if hex_payload is not None and len(hex_payload) != 0:
+            summary_dict['layer_string_payload'] = SystemHelpers.convert_hex_payload_to_string(hex_payload)
+        return summary_dict
+    except:
+        return None
+
 def is_packet_payload_suspicious(packet_summary: dict):
     '''
         Analyze payload with pattern /(<\?php)((\s+)?.*)/g. Return True if this packet is suspicious
@@ -119,7 +139,7 @@ def is_packet_payload_suspicious(packet_summary: dict):
 
     return False
 
-def print_suspicious_packet_info(packet: Packet, packet_summary: dict):
+def print_suspicious_packet_info(packet_summary: dict):
     print('[ ', packet_summary['packet_time'], ' ]', '- Warning: Detect suspicious packet that has been injected')
     print('Protocol:', packet_summary['protocol'])
     print('Source IP:', packet_summary['source_address'] + ':' + packet_summary['source_port'])
