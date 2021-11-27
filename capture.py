@@ -8,7 +8,7 @@ import threading
 import shutil
 import time
 
-thread_read_csv = False
+is_suspicious = False
 
 def reset_csv_file(csv_file_name: str):
     '''
@@ -35,10 +35,7 @@ def thread_read_csv_and_analysize(csv_file_name: str, time_wait: float):
                 print('Exit...')
                 break
         
-        # if time.time() - time_wait > 6:
-        thread_read_csv = True
         shutil.copyfile(csv_file_name, 'temp.csv')
-        thread_read_csv = False
         with open('temp.csv', 'r+', encoding='utf-8') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             csv_reader_list = list(csv_reader)
@@ -47,10 +44,9 @@ def thread_read_csv_and_analysize(csv_file_name: str, time_wait: float):
                     packet_summary = PacketUtil.parse_csv_data_to_dict(csv_reader_list[i])
                     matched = PacketUtil.is_packet_payload_suspicious(packet_summary)
                     if matched is not None:
-                        f, t = matched.span()
-                        print('Suspicious payload start from:', packet_summary['layer_string_payload'][f:t])
+                        print('Suspicious payload:', packet_summary['layer_string_payload'])
 
-def thread_capture_and_write_csv(interface: str, csv_file_name: str, is_read_csv: bool):
+def thread_capture_and_write_csv(interface: str, csv_file_name: str):
     '''
         This thread will be used to capture the packet and write it's summary info
         into the csv file
@@ -70,7 +66,7 @@ def thread_capture_and_write_csv(interface: str, csv_file_name: str, is_read_csv
 
         packet_summary = PacketUtil.summary_data_in_packet(packet, is_decode_hex_payload=True)
         
-        if packet_summary is not None and is_read_csv is not True:
+        if packet_summary is not None:
             if 'layer_string_payload' in packet_summary:
                 del packet_summary['layer_string_payload']
             with open(csv_file_name, 'a+', encoding='utf-8') as csv_file:
@@ -101,7 +97,7 @@ def main():
     # Thread capture packet and write packet to csv
     t_capture_and_write_csv = threading.Thread(
         target=thread_capture_and_write_csv,
-        args=[interfaces[int(selected_int) - 1], output_file_name, thread_read_csv]
+        args=[interfaces[int(selected_int) - 1], output_file_name]
     )
 
     # Thread read packet from csv and analysize it
