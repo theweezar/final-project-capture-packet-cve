@@ -143,10 +143,9 @@ def is_packet_payload_suspicious(packet_summary: dict):
     return None
 
 def print_suspicious_packet_info(packet_summary: dict):
-    print('[ ', packet_summary['packet_time'], ' ]', '- Warning: Detect suspicious packet that has been injected')
+    print('[', packet_summary['packet_time'], ']', '- Warning: Detect suspicious packet that has been injected')
     print('Protocol:', packet_summary['protocol'])
     print('Source IP:', packet_summary['source_address'] + ':' + packet_summary['source_port'])
-    # print('Source Port:', )
     print('Destination IP:', packet_summary['destination_address'] + ':' + packet_summary['destination_port'])
-    # print('Destination Port:', )
+    print('Suspicious payload:', packet_summary['layer_string_payload'])
     
