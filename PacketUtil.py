@@ -142,10 +142,27 @@ def is_packet_payload_suspicious(packet_summary: dict):
 
     return None
 
+def get_file_name_from_payload(payload: str):
+    '''
+        Extract file name from packet's payload
+    '''
+    pattern_filename = '(filename=")(\w+\.jpg|\.png|\.jpeg)(")'
+    regex_filename = re.compile(pattern_filename)
+    split_array = regex_filename.split(payload)
+    if len(split_array) == 5:
+        return split_array[2]
+    return None
+
 def print_suspicious_packet_info(packet_summary: dict):
+    '''
+        Print information in terminal
+    '''
     print('[', packet_summary['packet_time'], ']', '- Warning: Detect suspicious packet that has been injected')
     print('Protocol:', packet_summary['protocol'])
     print('Source IP:', packet_summary['source_address'] + ':' + packet_summary['source_port'])
     print('Destination IP:', packet_summary['destination_address'] + ':' + packet_summary['destination_port'])
+    injected_filename = get_file_name_from_payload(packet_summary['layer_string_payload'])
+    if injected_filename is not None:
+        print('Injected file name:', injected_filename)
     print('Suspicious payload:', packet_summary['layer_string_payload'])
     
